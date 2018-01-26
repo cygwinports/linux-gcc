@@ -1,0 +1,210 @@
+NAME="linux-gcc"
+VERSION=7.3.0
+RELEASE=1
+CATEGORY="Devel"
+SUMMARY="GCC for Linux kernel toolchains"
+DESCRIPTION="The GNU Compiler Collection includes front ends for C, C++,
+Objective-C, Fortran, Java, and Ada, as well as libraries for these languages
+(libstdc++, libgcj, etc.).  This package provides cross-compilers for the
+Linux kernel platforms."
+HOMEPAGE="http://gcc.gnu.org/"
+
+case ${VERSION} in
+*.*-20[1-9][0-9][01][0-9][0-3][0-9])
+	SRC_URI="mirror://gcc/snapshots/${VERSION}/gcc-${VERSION}.tar.xz" ;;
+*)	SRC_URI="mirror://gnu/gcc/gcc-${VERSION}/gcc-${VERSION}.tar.xz" ;;
+esac
+SRC_DIR="gcc-${VERSION}"
+PATCH_URI="
+	http://pkgs.fedoraproject.org/cgit/rpms/gcc.git/plain/gcc7-hack.patch
+	http://pkgs.fedoraproject.org/cgit/rpms/gcc.git/plain/gcc7-i386-libgomp.patch
+	http://pkgs.fedoraproject.org/cgit/rpms/gcc.git/plain/gcc7-sparc-config-detection.patch
+	http://pkgs.fedoraproject.org/cgit/rpms/gcc.git/plain/gcc7-libgomp-omp_h-multilib.patch
+	http://pkgs.fedoraproject.org/cgit/rpms/gcc.git/plain/gcc7-libtool-no-rpath.patch
+	http://pkgs.fedoraproject.org/cgit/rpms/gcc.git/plain/gcc7-no-add-needed.patch
+	http://pkgs.fedoraproject.org/cgit/rpms/gcc.git/plain/gcc7-aarch64-async-unw-tables.patch
+	http://pkgs.fedoraproject.org/cgit/rpms/gcc.git/plain/gcc7-foffload-default.patch
+	http://pkgs.fedoraproject.org/cgit/rpms/gcc.git/plain/gcc7-Wno-format-security.patch
+	http://pkgs.fedoraproject.org/cgit/rpms/gcc.git/plain/gcc7-aarch64-sanitizer-fix.patch
+	http://pkgs.fedoraproject.org/cgit/rpms/cross-gcc.git/plain/cross-gcc-format-config.patch
+	http://pkgs.fedoraproject.org/cgit/rpms/cross-gcc.git/plain/cross-gcc-microblaze.patch
+	5.2-lto-plugin-soname.patch
+	4.8-textdomain.patch
+	7.2-sh-build.patch
+"
+
+targets=(
+	aarch64-linux
+	alpha-linux
+	am33_2.0-linux
+	arm-linuxeabi
+	bfin-uclinux
+	c6x-uclinux
+	cris-linux
+	frv-linux
+	h8300-linux
+	hppa-linux
+	hppa64-linux
+	ia64-linux
+	m32r-linux
+	m68k-linux
+	microblaze-linux
+	mips64-linux
+	nios2-linux
+	powerpc64-linux
+	powerpc64le-linux
+	riscv64-linux
+	s390x-linux
+	sh-linux
+	sparc64-linux
+	tilegx-linux
+	x86_64-linux
+	xtensa-linux
+)
+
+PKG_NAMES="${NAME}-common"
+linux_gcc_common_CONTENTS="usr/share/doc/ usr/share/locale/"
+
+for tgt in ${targets[*]}
+do
+	tgtname=${tgt%-gnu*}
+	PKG_NAMES+=" ${tgtname}-gcc ${tgtname}-gcc-g++"
+	declare ${tgtname//[-\.]/_}_gcc_SUMMARY="C compiler for ${tgt%-*} Linux kernel platform"
+	declare ${tgtname//[-\.]/_}_gcc_REQUIRES="${NAME}-common ${tgtname}-binutils"
+	declare ${tgtname//[-\.]/_}_gcc_CONTENTS="
+		--exclude=cc1plus.exe
+		usr/bin/$tgt-cpp.exe
+		usr/bin/$tgt-gcc.exe
+		usr/bin/$tgt-gcc-*.exe
+		usr/bin/$tgt-gcov*.exe
+		usr/lib/gcc/$tgt/${VERSION}/
+		usr/share/man/man1/$tgt-cpp.1*
+		usr/share/man/man1/$tgt-gcc.1*
+		usr/share/man/man1/$tgt-gcov*.1*
+	"
+	declare ${tgtname//[-\.]/_}_gcc_g___SUMMARY="C++ compiler for ${tgt%-*} Linux kernel platform"
+	declare ${tgtname//[-\.]/_}_gcc_g___REQUIRES="${tgtname}-gcc"
+	declare ${tgtname//[-\.]/_}_gcc_g___CONTENTS="
+		usr/bin/$tgt-c++.exe
+		usr/bin/$tgt-g++.exe
+		usr/lib/gcc/$tgt/${VERSION}/cc1plus.exe
+		usr/share/man/man1/$tgt-g++.1*
+	"
+done
+
+src_compile() {
+	local with_headers disable_libs limits_h_test
+
+	CYGCONF_SOURCE=${S}
+
+	for tgt in ${targets[*]}
+	do
+		[ ! -d ${B}/$tgt ] || continue
+		mkdir -p ${B}/$tgt
+		pushd ${B}/$tgt
+
+		if [ -f /usr/$tgt/sys-root/usr/include/limits.h ] && ! defined BOOTSTRAP
+		then
+			with_headers="--with-sysroot=/usr/$tgt/sys-root"
+			disable_libs=
+			limits_h_test=true
+		else
+			with_headers="--without-headers"
+			disable_libs="--disable-shared --disable-libgomp --disable-libquadmath --disable-libstdc++-v3 --disable-threads"
+			limits_h_test=false
+		fi
+
+		CONFIG_FLAGS=
+		MAKE_TARGETS=
+		case $tgt in
+		arm-*)
+			CONFIG_FLAGS="--with-tune=generic-armv7-a --with-arch=armv7-a \
+				--with-float=hard --with-fpu=vfpv3-d16 --with-abi=aapcs-linux"
+		;;
+		mips64-*)
+			CONFIG_FLAGS="--with-arch=mips64r2 --with-abi=64 --with-arch_32=mips32r2 --with-fp-32=xx"
+		;;
+		powerpc-*|powerpc64-*|ppc-*|ppc64-*)
+			CONFIG_FLAGS="--with-cpu-32=power7 --with-tune-32=power7 --with-cpu-64=power7 --with-tune-64=power7 --enable-secureplt"
+		;;
+		powerpc64le-*|ppc64le-*)
+			CONFIG_FLAGS="--disable-multilib --with-cpu-64=power8 --with-tune-64=power8 --enable-secureplt"
+		;;
+		s390*-*)
+			CONFIG_FLAGS="--with-arch=zEC12 --with-tune=z13 --enable-decimal-float"
+		;;
+		sh-*)
+			CONFIG_FLAGS="--with-multilib-list=m1,m2,m2e,m2a,m2a-single,m4,m4-single,m4-single-only,m4-nofpu"
+		;;
+		sparc64-*)
+			CONFIG_FLAGS="--disable-linux-futex --with-cpu=ultrasparc"
+		;;
+		tilegx-*)
+			#CONFIG_FLAGS="--with-arch_32=tilepro"
+		;;
+		x86_64-*)
+			CONFIG_FLAGS="--with-arch_32=i686 --with-tune=generic"
+		;;
+		esac
+
+		case $tgt in
+		alpha|powerpc*|ppc*|s390*|sparc*)
+			CONFIG_FLAGS="$CONFIG_FLAGS --with-long-double-128" ;;
+		esac
+
+		case $tgt in
+		i?86*|x86_64*|ppc*|ppc64*|s390*|arm*|aarch64*|mips*)
+			CONFIG_FLAGS="$CONFIG_FLAGS --enable-gnu-indirect-function" ;;
+		esac
+
+		cygconf --libexecdir=/usr/lib \
+			--target=$tgt \
+			$with_headers \
+			--enable-languages=c,c++,lto \
+			--enable-multilib \
+			--enable-targets=all \
+			--enable-version-specific-runtime-libs \
+			--enable-__cxa_atexit \
+			--enable-gnu-unique-object \
+			--enable-linker-build-id \
+			--disable-libatomic \
+			--disable-libitm \
+			--disable-libmpx \
+			--disable-libssp \
+			--disable-libvtv \
+			$disable_libs \
+			--disable-libunwind-exceptions \
+			--disable-sjlj-exceptions \
+			--with-gnu-as --with-gnu-ld \
+			--without-libiconv-prefix --without-libintl-prefix \
+			--with-system-libunwind \
+			--with-system-zlib \
+			$CONFIG_FLAGS
+		cygmake LIMITS_H_TEST=$limits_h_test $MAKE_TARGETS
+
+		popd
+	done
+}
+
+src_install() {
+	for tgt in ${targets[*]}
+	do
+		INSTALL_TARGETS=
+		case ${tgt} in
+#		tilegx-*)  INSTALL_TARGETS="install-gcc" ;;
+		*)  INSTALL_TARGETS="install" ;;
+		esac
+
+		pushd ${B}/$tgt
+		cygmake -j1 $INSTALL_TARGETS DESTDIR=${D}
+		popd
+	done
+
+	# Remove Cygwin-host libiberty.a
+	rm -f ${D}/usr/lib/libiberty.a
+
+	find ${D} -name '*-gdb.py' -delete
+
+	# conflicts with native gcc
+	rm -fr ${D}/usr/share/{info,man/man7}
+}

@@ -1,0 +1,10 @@
+--- origsrc/gcc-7.2.0/gcc/config/sh/sh.c	2017-04-03 17:30:56.274463000 -0500
++++ src/gcc-7.2.0/gcc/config/sh/sh.c	2017-11-21 02:26:57.155685600 -0600
+@@ -19,6 +19,7 @@ You should have received a copy of the G
+ along with GCC; see the file COPYING3.  If not see
+ <http://www.gnu.org/licenses/>.  */
+ 
++#define _GNU_SOURCE
+ #include <sstream>
+ 
+ #include "config.h"

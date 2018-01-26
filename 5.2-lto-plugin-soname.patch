@@ -1,0 +1,50 @@
+--- origsrc/gcc-5.2.0/gcc/config.host	2015-01-09 08:06:02.000000000 -0600
++++ src/gcc-5.2.0/gcc/config.host	2015-07-27 17:12:12.489014800 -0500
+@@ -219,14 +219,14 @@ case ${host} in
+     out_host_hook_obj=host-cygwin.o
+     host_xmake_file="${host_xmake_file} i386/x-cygwin"
+     host_exeext=.exe
+-    host_lto_plugin_soname=cyglto_plugin-0.dll
++    host_lto_plugin_soname=cyglto_plugin.dll
+     ;;
+   i[34567]86-*-mingw32*)
+     host_xm_file=i386/xm-mingw32.h
+     host_xmake_file="${host_xmake_file} i386/x-mingw32"
+     host_exeext=.exe
+     out_host_hook_obj=host-mingw32.o
+-    host_lto_plugin_soname=liblto_plugin-0.dll
++    host_lto_plugin_soname=liblto_plugin.dll
+     ;;
+   x86_64-*-mingw*)
+     use_long_long_for_widest_fast_int=yes
+@@ -234,7 +234,7 @@ case ${host} in
+     host_xmake_file="${host_xmake_file} i386/x-mingw32"
+     host_exeext=.exe
+     out_host_hook_obj=host-mingw32.o
+-    host_lto_plugin_soname=liblto_plugin-0.dll
++    host_lto_plugin_soname=liblto_plugin.dll
+     ;;
+   i[34567]86-*-uwin*)
+     echo "*** UWIN may not be used as a host platform because"
+--- origsrc/gcc-5.2.0/lto-plugin/Makefile.am	2014-11-13 07:28:56.000000000 -0600
++++ src/gcc-5.2.0/lto-plugin/Makefile.am	2015-07-27 17:11:21.982126000 -0500
+@@ -21,7 +21,7 @@ in_gcc_libs = $(foreach lib, $(libexecsu
+ liblto_plugin_la_SOURCES = lto-plugin.c
+ # Note that we intentionally override the bindir supplied by ACX_LT_HOST_FLAGS.
+ liblto_plugin_la_LDFLAGS = $(AM_LDFLAGS) \
+-	$(lt_host_flags) -module -bindir $(libexecsubdir)
++	$(lt_host_flags) -module -avoid-version -bindir $(libexecsubdir)
+ # Can be simplified when libiberty becomes a normal convenience library.
+ libiberty = $(with_libiberty)/libiberty.a
+ libiberty_noasan = $(with_libiberty)/noasan/libiberty.a
+--- origsrc/gcc-5.2.0/lto-plugin/Makefile.in	2014-11-13 07:28:56.000000000 -0600
++++ src/gcc-5.2.0/lto-plugin/Makefile.in	2015-07-27 17:11:50.608763300 -0500
+@@ -239,7 +239,7 @@ in_gcc_libs = $(foreach lib, $(libexecsu
+ liblto_plugin_la_SOURCES = lto-plugin.c
+ # Note that we intentionally override the bindir supplied by ACX_LT_HOST_FLAGS.
+ liblto_plugin_la_LDFLAGS = $(AM_LDFLAGS) $(lt_host_flags) -module \
+-	-bindir $(libexecsubdir) $(if $(wildcard \
++	-avoid-version -bindir $(libexecsubdir) $(if $(wildcard \
+ 	$(libiberty_noasan)),, $(if $(wildcard \
+ 	$(libiberty_pic)),,-Wc,$(libiberty)))
+ # Can be simplified when libiberty becomes a normal convenience library.
