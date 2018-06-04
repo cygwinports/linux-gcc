@@ -36,17 +36,12 @@ PATCH_URI="
 targets=(
 	aarch64-linux
 	alpha-linux
-	am33_2.0-linux
 	arm-linuxeabi
-	bfin-uclinux
 	c6x-uclinux
-	cris-linux
-	frv-linux
 	h8300-linux
 	hppa-linux
 	hppa64-linux
 	ia64-linux
-	m32r-linux
 	m68k-linux
 	microblaze-linux
 	mips64-linux
@@ -57,7 +52,6 @@ targets=(
 	s390x-linux
 	sh-linux
 	sparc64-linux
-	tilegx-linux
 	x86_64-linux
 	xtensa-linux
 )
@@ -125,7 +119,7 @@ src_compile() {
 			CONFIG_FLAGS="--with-arch=mips64r2 --with-abi=64 --with-arch_32=mips32r2 --with-fp-32=xx"
 		;;
 		powerpc-*|powerpc64-*|ppc-*|ppc64-*)
-			CONFIG_FLAGS="--with-cpu-32=power7 --with-tune-32=power7 --with-cpu-64=power7 --with-tune-64=power7 --enable-secureplt"
+			CONFIG_FLAGS="--with-cpu-32=power7 --with-tune-32=power7 --with-cpu-64=power8 --with-tune-64=power8 --enable-secureplt"
 		;;
 		powerpc64le-*|ppc64le-*)
 			CONFIG_FLAGS="--disable-multilib --with-cpu-64=power8 --with-tune-64=power8 --enable-secureplt"
@@ -153,7 +147,7 @@ src_compile() {
 		esac
 
 		case $tgt in
-		i?86*|x86_64*|ppc*|ppc64*|s390*|arm*|aarch64*|mips*)
+		i?86*|x86_64*|powerpc*|ppc*|s390*|arm*|aarch64*|mips*)
 			CONFIG_FLAGS="$CONFIG_FLAGS --enable-gnu-indirect-function" ;;
 		esac
 
